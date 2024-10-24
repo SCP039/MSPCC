@@ -1,0 +1,172 @@
+(*chanels*)
+free c:channel. 
+free cgm:channel [private]. 
+free mgk:bitstring [private]. 
+(*xor*)
+fun xor(bitstring,bitstring): bitstring.
+equation forall m:bitstring,n: bitstring;
+xor(xor(m,n),n)=m.
+(*function*)
+fun h(bitstring):bitstring.
+fun h2(bitstring):bitstring.
+fun add(bitstring,bitstring):bitstring.
+fun mul(bitstring,bitstring):bitstring.
+fun Res(bitstring):bitstring.
+fun ecpm(bitstring,bitstring):bitstring.
+fun concat(bitstring,bitstring,bitstring):bitstring.
+fun concat2(bitstring,bitstring):bitstring.
+fun concat3(bitstring,bitstring,bitstring,bitstring,bitstring):bitstring.
+(*constants*)
+free ID0:bitstring[private].
+free IDi:bitstring[private].
+free IDj:bitstring[private].
+free IDk:bitstring[private].
+free IDta:bitstring[private].
+free GCS: bitstring.
+free TA:bitstring.
+free SK:bitstring[private].
+free Chei:bitstring[private].
+free Chej:bitstring[private].
+free Chek:bitstring[private].
+free Cheta:bitstring[private].
+(*keys*)
+free s:bitstring[private].
+free P:bitstring[private].
+type sskey.
+type spkey.
+fun spk(sskey):spkey.
+fun sign(bitstring,sskey):bitstring.
+reduc forall m:bitstring,k:sskey;getmess(sign(m,k))=m.
+reduc forall m:bitstring,k:sskey;checksign(sign(m,k),spk(k))=m.
+type skey.
+type pkey.
+fun pk(skey):pkey.
+fun aenc(bitstring,pkey):bitstring.
+reduc forall m:bitstring,k:skey;adec(aenc(m,pk(k)),k)=m.
+fun syme(bitstring,bitstring):bitstring.
+reduc forall ma:bitstring,key:bitstring;
+symd(syme(ma,key),key)=ma.
+(*Events*)
+event beginRCagent(bitstring).
+event beginGMagent(bitstring).
+event beginM1agent(bitstring).
+event beginM2agent(bitstring).
+event endRCagent(bitstring).
+event endGMagent(bitstring).
+event endM1agent(bitstring).
+event endM2agent(bitstring).
+event jutifyfinishi(bitstring).
+event jutifyfinishj(bitstring).
+event jutifyfinishk(bitstring).
+event accept(bitstring).
+event successtrans(bitstring).
+event successverify(bitstring).
+
+(*Process GM*)
+let pGM(pkGM:spkey,skGM:sskey,pkTA:pkey)=
+let (res:bitstring)=Res(Chei)in
+out (cgm,(IDi,res));
+in (cgm,(xRi:bitstring,xSIDi:bitstring,xX0:bitstring,xV0:bitstring,xw:bitstring,QID0:bitstring));
+let xHIDi=h(concat(IDi,xRi,res))in 
+let xh0=h2(concat2(xw,xX0))in
+event beginGMagent(IDi);
+let pub=mul(s,P) in 
+if ecpm(P,xV0)=mul(ecpm(xX0,xh0),ecpm(pub,QID0)) then event jutifyfinishi(IDi);
+new x1:bitstring;
+new y1:bitstring;
+let X1=ecpm(x1,P)in
+let Y1=ecpm(y1,P)in
+let SDi=add(xV0,add(xSIDi,mul(x1,xh0)))in
+let V1=add(SDi,mul(y1,xh0))in
+in (c,(tx2:bitstring,ty2:bitstring,tv2:bitstring,QIDj:bitstring));
+in (c,(tx3:bitstring,ty3:bitstring,tv3:bitstring,QIDK:bitstring));
+if ecpm(P,tv2)=mul(mul(ecpm(pub,add(QID0,QIDj)),ecpm(ty2,xh0)),ecpm(add(xX0,tx2),xh0)) then event jutifyfinishj(IDi);
+if ecpm(P,tv3)=mul(mul(ecpm(pub,add(QID0,QIDK)),ecpm(ty3,xh0)),ecpm(add(xX0,tx3),xh0)) then event jutifyfinishk(IDi);
+let X=add(add(X1,tx2),tx3)in
+let Y=add(add(Y1,ty2),ty3)in
+let V=add(add(V1,tv2),tv3)in
+let ans=concat3(xw,xX0,X,Y,V) in
+let hans=h(ans) in 
+out (c,(aenc(sign((ans,hans),skGM),pkTA),hans,X,Y,V,QID0,xHIDi,QIDj,QIDK,xX0,xh0));
+event endGMagent(IDi).
+
+(*Process M1*)
+let pM1=
+let (res:bitstring)=Res(Chej)in
+out (cgm,(IDj,res));
+in (cgm,(xRj:bitstring,xSIDj:bitstring,xX0:bitstring,xV0:bitstring,xw:bitstring));
+let xHIDj=h(concat(IDj,xRj,res))in 
+let xh0=h2(concat2(xw,xX0))in
+event beginM1agent(IDj);
+new x2:bitstring;
+new y2:bitstring;
+let X2=ecpm(x2,P)in
+let Y2=ecpm(y2,P)in
+let SDj=add(xV0,add(xSIDj,mul(x2,xh0)))in
+let V2=add(SDj,mul(y2,xh0))in
+out (c,(X2,Y2,V2,xHIDj));
+event endM1agent(IDj).
+(*Process M2*)
+let pM2=
+let (res:bitstring)=Res(Chek)in
+out (cgm,(IDk,res));
+in (cgm,(xRk:bitstring,xSIDk:bitstring,xX0:bitstring,xV0:bitstring,xw:bitstring));
+let xHIDk=h(concat(IDk,xRk,res))in 
+let xh0=h2(concat2(xw,xX0))in
+event beginM1agent(IDk);
+new x3:bitstring;
+new y3:bitstring;
+let X3=ecpm(x3,P)in
+let Y3=ecpm(y3,P)in
+let SDk=add(xV0,add(xSIDk,mul(x3,xh0)))in
+let V3=add(SDk,mul(y3,xh0))in
+out (c,(X3,Y3,V3,xHIDk));
+event endM1agent(IDk).
+(*Process GCS*)
+let pGCS=
+event beginRCagent(GCS);
+let pPub=ecpm(s,P) in
+in (cgm,(xIDi:bitstring,resi:bitstring));
+new ri:bitstring;
+let Ri=ecpm(ri,P)in
+let HIDi=h(concat(xIDi,Ri,resi))in
+let SIDi=add(ri,mul(s,HIDi)) in
+new SID0:bitstring;
+new x0:bitstring;
+new w:bitstring;
+let QID0=mul(s,SID0) in 
+let X0=ecpm(x0,P)in
+let h0=h2(concat2(w,X0))in
+let V0=add(ID0,mul(x0,h0))in 
+out(cgm,(Ri,SIDi,X0,V0,w,QID0));
+event endRCagent(GCS).
+(*Process TA*)
+let pTA(pkTA:pkey,skTA:skey,pkGM:spkey)=
+in(c,(x:bitstring,hx:bitstring,X:bitstring,Y:bitstring,V:bitstring,QID0:bitstring,QIDi:bitstring,QIDj:bitstring,QIDK:bitstring,xX0:bitstring,Xh0:bitstring));
+event accept(x);
+let y=adec(x,skTA)in
+let (=pkGM,m:bitstring)=checksign(y,pkGM) in
+if hx=h(m) then event  successtrans(x);
+let pub=mul(s,P) in 
+if ecpm(P,V)=mul(mul(ecpm(pub,add(add(add(QID0,QIDK),QIDi),QIDj)),ecpm(Y,Xh0)),ecpm(add(xX0,X),Xh0)) then event successverify(x).
+
+query attacker(IDi).
+query attacker(IDj).
+query attacker(IDk).
+query id:bitstring;inj-event(endGMagent(id))==>inj-event(beginGMagent(id)).
+query id:bitstring;inj-event(endM1agent(id))==>inj-event(beginM1agent(id)).
+query id:bitstring;inj-event(endM2agent(id))==>inj-event(beginM2agent(id)).
+query id:bitstring;inj-event(endRCagent(id))==>inj-event(beginRCagent(id)).
+query id:bitstring;inj-event(jutifyfinishi(id))==>inj-event(beginGMagent(id)).
+query id:bitstring;inj-event(jutifyfinishj(id))==>inj-event(beginGMagent(id)).
+query id:bitstring;inj-event(jutifyfinishk(id))==>inj-event(beginGMagent(id)).
+query id:bitstring;inj-event(successverify(id))==>inj-event(successtrans(id)).
+
+process
+new skTA:skey;
+new skGM:sskey;
+let pkTA=pk(skTA) in out(c,pkTA);
+let pkGM=spk(skGM) in out(c,pkGM);
+((!pTA(pkTA,skTA,pkGM))|(!pGM(pkGM,skGM,pkTA))|(!pGCS)|(!pM1)|(!pM2))
+
+
